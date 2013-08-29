@@ -29,6 +29,7 @@
 #include <linux/platform_device.h>
 #include <linux/i2c.h>
 #include <linux/mfd/tps65910.h>
+#include <linux/gpio.h>
 
 #include <mach/hardware.h>
 
@@ -51,6 +52,21 @@
 
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
+
+#define GPIO_RTC_RV4162C7_IRQ	GPIO_TO_PIN(0, 20)
+#define GPIO_RTC_PMIC_IRQ	GPIO_TO_PIN(3, 4)
+
+#ifdef CONFIG_OMAP_MUX
+static struct omap_board_mux board_mux[] __initdata = {
+	AM33XX_MUX(I2C0_SDA, OMAP_MUX_MODE0 | AM33XX_SLEWCTRL_SLOW |
+			AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT),
+	AM33XX_MUX(I2C0_SCL, OMAP_MUX_MODE0 | AM33XX_SLEWCTRL_SLOW |
+			AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT),
+	{ .reg_offset = OMAP_MUX_TERMINATOR },
+};
+#else
+#define board_mux       NULL
+#endif
 
 /* module pin mux structure */
 struct pinmux_config {
@@ -88,6 +104,13 @@ static struct pinmux_config i2c0_pin_mux[] = {
 				AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT},
 	{"i2c0_scl.i2c0_scl", OMAP_MUX_MODE0 | AM33XX_SLEWCTRL_SLOW |
 				AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
+/* pin-mux for RTC */
+static struct pinmux_config rtc_pin_mux[] = {
+	{"xdma_event_intr1.gpio0_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{"mii1_rxdv.gpio3_4", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 	{NULL, 0},
 };
 
@@ -152,6 +175,9 @@ static struct i2c_board_info __initdata pcm051lb_i2c0_boardinfo[] = {
 		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
 		.platform_data  = &am335x_tps65910_info,
 	},
+	{
+		I2C_BOARD_INFO("rv4162c7", 0x68),
+	},
 	{},
 };
 
@@ -171,6 +197,35 @@ static void __init pcm051lb_i2c0_init(void)
 	setup_pin_mux(i2c0_pin_mux);
 	omap_register_i2c_bus(1, 100, pcm051lb_i2c0_boardinfo,
 			ARRAY_SIZE(pcm051lb_i2c0_boardinfo));
+}
+
+/* RTC interrupt initialization */
+static void __init pcm051lb_rtc_irq_init(void)
+{
+	int r;
+
+	setup_pin_mux(rtc_pin_mux);
+
+	/* Option 1: RV-4162 */
+	r = gpio_request_one(GPIO_RTC_RV4162C7_IRQ,
+				GPIOF_IN, "rtc-rv4162c7-irq");
+	if (r < 0) {
+		printk(KERN_WARNING "failed to request GPIO%d\n",
+				GPIO_RTC_RV4162C7_IRQ);
+		return;
+	}
+
+	pcm051lb_i2c0_boardinfo[2].irq = gpio_to_irq(GPIO_RTC_RV4162C7_IRQ);
+
+	/* Option 2: RTC in the TPS65910 PMIC */
+	if (omap_mux_init_signal("mii1_rxdv.gpio3_4", AM33XX_PIN_INPUT_PULLUP))
+		printk(KERN_WARNING "Failed to mux PMIC IRQ\n");
+	else if (gpio_request_one(GPIO_RTC_PMIC_IRQ,
+				GPIOF_IN, "rtc-tps65910-irq") < 0)
+		printk(KERN_WARNING "failed to request GPIO%d\n",
+				GPIO_RTC_PMIC_IRQ);
+	else
+		am335x_tps65910_info.irq = gpio_to_irq(GPIO_RTC_PMIC_IRQ);
 }
 
 static struct resource am33xx_cpuidle_resources[] = {
@@ -219,6 +274,8 @@ static void __init pcm051lb_init(void)
 	am33xx_cpuidle_init();
 	pcm051lb_mux_init();
 	omap_serial_init();
+	am33xx_mux_init(board_mux);
+	pcm051lb_rtc_irq_init();
 	/* SDRAM controller initialization */
 	omap_sdrc_init(NULL, NULL);
 }
