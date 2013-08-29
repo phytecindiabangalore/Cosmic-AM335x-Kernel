@@ -30,6 +30,7 @@
 #include <linux/i2c.h>
 #include <linux/mfd/tps65910.h>
 #include <linux/gpio.h>
+#include <linux/i2c/at24.h>
 
 #include <mach/hardware.h>
 
@@ -177,6 +178,9 @@ static struct i2c_board_info __initdata pcm051lb_i2c0_boardinfo[] = {
 	},
 	{
 		I2C_BOARD_INFO("rv4162c7", 0x68),
+	},
+	{
+		I2C_BOARD_INFO("24c32", 0x52),
 	},
 	{},
 };
