@@ -31,6 +31,8 @@
 #include <linux/mfd/tps65910.h>
 #include <linux/gpio.h>
 #include <linux/i2c/at24.h>
+#include <linux/spi/spi.h>
+#include <linux/spi/flash.h>
 
 #include <mach/hardware.h>
 
@@ -115,6 +117,19 @@ static struct pinmux_config rtc_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* pin-mux for SPI0 flash */
+static struct pinmux_config spi0_pin_mux[] = {
+	{"spi0_sclk.spi0_sclk", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL
+							| AM33XX_INPUT_EN},
+	{"spi0_d0.spi0_d0", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL | AM33XX_PULL_UP
+							| AM33XX_INPUT_EN},
+	{"spi0_d1.spi0_d1", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL
+							| AM33XX_INPUT_EN},
+	{"spi0_cs0.spi0_cs0", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL | AM33XX_PULL_UP
+							| AM33XX_INPUT_EN},
+	{NULL, 0},
+};
+
 /* mmc0 platform data */
 static struct omap2_hsmmc_info am335x_mmc[] __initdata	= {
 	{
@@ -131,6 +146,27 @@ static struct omap2_hsmmc_info am335x_mmc[] __initdata	= {
 		.mmc		= 0,    /* will be set at runtime */
 	},
 	{}	/* Terminator */
+};
+
+/* SPI flash platform data */
+static const struct flash_platform_data am335x_spi_flash = {
+	.type	= "w25q64",
+	.name	= "spi_flash",
+};
+
+/*
+ * SPI Flash works at 80Mhz however SPI Controller works at 48MHz.
+ * So setup Max speed to be less than that of Controller speed
+ */
+static struct spi_board_info am335x_spi0_slave_info[] = {
+	{
+		.modalias	= "m25p80",
+		.platform_data	= &am335x_spi_flash,
+		.irq		= -1,
+		.max_speed_hz	= 24000000,
+		.bus_num	= 1,
+		.chip_select	= 0,
+	},
 };
 
 /* Regulator info */
@@ -203,6 +239,15 @@ static void __init pcm051lb_i2c0_init(void)
 			ARRAY_SIZE(pcm051lb_i2c0_boardinfo));
 }
 
+/* spi0 initialization */
+static void pcm051lb_spi0_init(void)
+{
+	setup_pin_mux(spi0_pin_mux);
+	spi_register_board_info(am335x_spi0_slave_info,
+			ARRAY_SIZE(am335x_spi0_slave_info));
+	return;
+}
+
 /* RTC interrupt initialization */
 static void __init pcm051lb_rtc_irq_init(void)
 {
@@ -271,6 +316,7 @@ static void pcm051lb_mux_init(void)
 {
 	mmc0_init();
 	pcm051lb_i2c0_init();
+	pcm051lb_spi0_init();
 }
 
 static void __init pcm051lb_init(void)
