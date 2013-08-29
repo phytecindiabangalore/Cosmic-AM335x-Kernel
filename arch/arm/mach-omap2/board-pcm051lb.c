@@ -33,6 +33,7 @@
 #include <linux/i2c/at24.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
+#include <linux/mtd/nand.h>
 
 #include <mach/hardware.h>
 
@@ -46,12 +47,15 @@
 #include <plat/board.h>
 #include <plat/common.h>
 #include <plat/mmc.h>
+#include <plat/nand.h>
 
 #include "cpuidle33xx.h"
 #include "mux.h"
 #include "hsmmc.h"
 #include "common.h"
 #include "am33xx_generic.h"
+#include "board-flash.h"
+#include "devices.h"
 
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
@@ -127,6 +131,26 @@ static struct pinmux_config spi0_pin_mux[] = {
 							| AM33XX_INPUT_EN},
 	{"spi0_cs0.spi0_cs0", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL | AM33XX_PULL_UP
 							| AM33XX_INPUT_EN},
+	{NULL, 0},
+};
+
+/* Pin mux for nand flash module */
+static struct pinmux_config nand_pin_mux[] = {
+	{"gpmc_ad0.gpmc_ad0",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad1.gpmc_ad1",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad2.gpmc_ad2",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad3.gpmc_ad3",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad4.gpmc_ad4",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad5.gpmc_ad5",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad6.gpmc_ad6",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad7.gpmc_ad7",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_wait0.gpmc_wait0", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_wpn.gpmc_wpn",	OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_csn0.gpmc_csn0",	OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
+	{"gpmc_advn_ale.gpmc_advn_ale",	OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
+	{"gpmc_oen_ren.gpmc_oen_ren",	OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
+	{"gpmc_wen.gpmc_wen",		OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
+	{"gpmc_ben0_cle.gpmc_ben0_cle",	OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
 	{NULL, 0},
 };
 
@@ -206,6 +230,34 @@ struct tps65910_board am335x_tps65910_info = {
 	.tps65910_pmic_init_data[TPS65910_REG_VMMC]	= &am335x_dummy,
 };
 
+/* GPMC timing info */
+static struct gpmc_timings am335x_nand_timings = {
+
+	/* granularity of 10 is sufficient because of calculations */
+	.sync_clk = 0,
+
+	.cs_on = 0,
+	.cs_rd_off = 30,
+	.cs_wr_off = 30,
+
+	.adv_on = 0,
+	.adv_rd_off = 30,
+	.adv_wr_off = 30,
+
+	.oe_on = 10,
+	.we_off = 20,
+	.oe_off = 30,
+
+	.access = 30,
+	.rd_cycle = 30,
+	.wr_cycle = 30,
+
+	.cs_cycle_delay = 50,
+	.cs_delay_en = 1,
+	.wr_access = 30,
+	.wr_data_mux_bus = 0,
+};
+
 /* I2C0 board info */
 static struct i2c_board_info __initdata pcm051lb_i2c0_boardinfo[] = {
 	{
@@ -277,6 +329,28 @@ static void __init pcm051lb_rtc_irq_init(void)
 		am335x_tps65910_info.irq = gpio_to_irq(GPIO_RTC_PMIC_IRQ);
 }
 
+/* NAND initialization */
+static void pcm051lb_nand_init(void)
+{
+	struct omap_nand_platform_data *pdata;
+	struct gpmc_devices_info gpmc_device[2] = {
+		{ NULL, 0 },
+		{ NULL, 0 },
+	};
+
+	setup_pin_mux(nand_pin_mux);
+	pdata = omap_nand_init(NULL, 0, 0, 0, &am335x_nand_timings);
+	if (!pdata)
+		return;
+	pdata->ecc_opt = OMAP_ECC_BCH8_CODE_HW;
+	pdata->elm_used = true;
+	gpmc_device[0].pdata = pdata;
+	gpmc_device[0].flag = GPMC_DEVICE_NAND;
+
+	omap_init_gpmc(gpmc_device, sizeof(gpmc_device));
+	omap_init_elm();
+}
+
 static struct resource am33xx_cpuidle_resources[] = {
 	{
 		.start		= AM33XX_EMIF0_BASE,
@@ -328,6 +402,7 @@ static void __init pcm051lb_init(void)
 	pcm051lb_rtc_irq_init();
 	/* SDRAM controller initialization */
 	omap_sdrc_init(NULL, NULL);
+	pcm051lb_nand_init();
 }
 
 static void __init pcm051lb_map_io(void)
