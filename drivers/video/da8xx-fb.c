@@ -361,6 +361,20 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.pxl_clk = 40000000,
 		.invert_pxl_clk = 1,
 	},
+	/* HTdisplay HT800070i */
+	[9] = {
+		.name = "HT_HT800070I",
+		.width = 800,
+		.height = 480,
+		.hfp = 210,
+		.hbp = 25,
+		.hsw = 19,
+		.vfp = 21,
+		.vbp = 14,
+		.vsw = 9,
+		.pxl_clk = 30000000,
+		.invert_pxl_clk = 0,
+	},
 };
 
 static inline bool is_raster_enabled(void)

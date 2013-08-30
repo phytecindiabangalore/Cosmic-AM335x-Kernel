@@ -51,6 +51,10 @@
 #include <plat/mmc.h>
 #include <plat/nand.h>
 #include <plat/usb.h>
+#include <plat/lcdc.h>
+
+/* LCD controller is similar to DA850 */
+#include <video/da8xx-fb.h>
 
 #include "cpuidle33xx.h"
 #include "mux.h"
@@ -77,6 +81,30 @@ static struct omap_board_mux board_mux[] __initdata = {
 #else
 #define board_mux       NULL
 #endif
+
+static const struct display_panel disp_panel = {
+	VGA,
+	32,
+	32,
+	COLOR_ACTIVE,
+};
+
+static struct lcd_ctrl_config lcd_cfg = {
+	&disp_panel,
+	.ac_bias		= 40,
+	.ac_bias_intrpt		= 0,
+	.dma_burst_sz		= 16,
+	.bpp			= 32,
+	.fdd			= 0x80,
+	.tft_alt_mode		= 0,
+	.stn_565_mode		= 0,
+	.mono_8bit_mode		= 0,
+	.invert_line_clock	= 1,
+	.invert_frm_clock	= 1,
+	.sync_edge		= 0,
+	.sync_ctrl		= 1,
+	.raster_order		= 0,
+};
 
 /* module pin mux structure */
 struct pinmux_config {
@@ -194,6 +222,55 @@ static struct pinmux_config d_can0_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Module pin mux for LCDC */
+static struct pinmux_config lcdc_pin_mux[] = {
+	{"lcd_data0.lcd_data0",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data1.lcd_data1",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data2.lcd_data2",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data3.lcd_data3",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data4.lcd_data4",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data5.lcd_data5",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+						| AM33XX_PULL_DISA},
+	{"lcd_data6.lcd_data6",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data7.lcd_data7",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data8.lcd_data8",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data9.lcd_data9",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data10.lcd_data10",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data11.lcd_data11",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data12.lcd_data12",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data13.lcd_data13",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data14.lcd_data14",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data15.lcd_data15",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"gpmc_ad8.lcd_data16",		OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad9.lcd_data17",		OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad10.lcd_data18",	OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad11.lcd_data19",	OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad12.lcd_data20",	OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad13.lcd_data21",	OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad14.lcd_data22",	OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad15.lcd_data23",	OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"lcd_vsync.lcd_vsync",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"lcd_hsync.lcd_hsync",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"lcd_pclk.lcd_pclk",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"lcd_ac_bias_en.lcd_ac_bias_en", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
 /* mmc0 platform data */
 static struct omap2_hsmmc_info am335x_mmc[] __initdata	= {
 	{
@@ -244,6 +321,36 @@ static struct omap_musb_board_data musb_board_data = {
 	.mode		= (MUSB_HOST << 4) | MUSB_OTG,
 	.power		= 500,
 	.instances	= 1,
+};
+
+/* LCD  platform data */
+static struct da8xx_lcdc_platform_data lcdc_pdata[] = {
+	{
+		.manu_name		= "PrimeView",
+		.controller_data	= &lcd_cfg,
+		.type			= "PV_PM070WL4",
+	}, {
+		.manu_name		= "PrimeView",
+		.controller_data	= &lcd_cfg,
+		.type			= "PV_PD035VL1",
+	}, {
+		.manu_name		= "PrimeView",
+		.controller_data	= &lcd_cfg,
+		.type			= "PV_PD050VL1",
+	}, {
+		.manu_name		= "PrimeView",
+		.controller_data	= &lcd_cfg,
+		.type			= "PV_PD104SLF",
+	}, {
+		.manu_name		= "HTdisplay",
+		.controller_data	= &lcd_cfg,
+		.type			= "HT_HT800070I",
+	},
+};
+
+static struct da8xx_lcdc_selection_platform_data lcdc_selection_pdata = {
+	.entries_ptr = lcdc_pdata,
+	.entries_cnt = ARRAY_SIZE(lcdc_pdata)
 };
 
 /* Regulator info */
@@ -442,6 +549,38 @@ static struct resource am33xx_cpuidle_resources[] = {
 	},
 };
 
+/* lcd initialization */
+static int __init conf_disp_pll(int rate)
+{
+	struct clk *disp_pll;
+	int ret = -EINVAL;
+	disp_pll = clk_get(NULL, "dpll_disp_ck");
+	if (IS_ERR(disp_pll)) {
+		pr_err("Cannot clk_get disp_pll\n");
+		goto out;
+	}
+
+	ret = clk_set_rate(disp_pll, rate);
+	clk_put(disp_pll);
+out:
+	return ret;
+}
+
+static void pcm051lb_lcdc_init(void)
+{
+	setup_pin_mux(lcdc_pin_mux);
+
+	if (conf_disp_pll(300000000)) {
+		pr_info("Failed configure display PLL, not attempting to"
+			"register LCDC\n");
+		return;
+	}
+
+	if (am33xx_register_lcdc(&lcdc_selection_pdata))
+		pr_info("Failed to register LCDC device\n");
+	return;
+}
+
 /* AM33XX devices support DDR2 power down */
 static struct am33xx_cpuidle_config am33xx_cpuidle_pdata = {
 	.ddr2_pdown = 1,
@@ -489,6 +628,7 @@ static void __init pcm051lb_init(void)
 	pcm051lb_usb_init();
 	pcm051lb_net_init();
 	d_can_init();
+	pcm051lb_lcdc_init();
 }
 
 static void __init pcm051lb_map_io(void)
