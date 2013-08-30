@@ -24,5 +24,6 @@ extern int __init am33xx_register_ehrpwm(int id,
 		struct pwmss_platform_data *pdata);
 extern int __init omap_init_elm(void);
 extern void __init am33xx_gpu_init(void);
+extern void am33xx_d_can_init(unsigned int instance);
 
 #endif

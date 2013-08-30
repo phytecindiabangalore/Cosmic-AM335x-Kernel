@@ -187,6 +187,13 @@ static struct pinmux_config rmii1_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* pin mux for DCAN0 */
+static struct pinmux_config d_can0_pin_mux[] = {
+	{"mii1_txd2.dcan0_rx_mux0", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
+	{"mii1_txd3.dcan0_tx_mux0", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
+	{NULL, 0},
+};
+
 /* mmc0 platform data */
 static struct omap2_hsmmc_info am335x_mmc[] __initdata	= {
 	{
@@ -420,6 +427,13 @@ static void pcm051lb_net_init(void)
 	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII, NULL, NULL);
 }
 
+/* dcan0 initialization */
+static void d_can_init(void)
+{
+	setup_pin_mux(d_can0_pin_mux);
+	am33xx_d_can_init(0);
+}
+
 static struct resource am33xx_cpuidle_resources[] = {
 	{
 		.start		= AM33XX_EMIF0_BASE,
@@ -474,6 +488,7 @@ static void __init pcm051lb_init(void)
 	pcm051lb_nand_init();
 	pcm051lb_usb_init();
 	pcm051lb_net_init();
+	d_can_init();
 }
 
 static void __init pcm051lb_map_io(void)
