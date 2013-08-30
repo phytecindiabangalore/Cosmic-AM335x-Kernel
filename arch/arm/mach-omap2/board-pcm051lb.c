@@ -36,6 +36,8 @@
 #include <linux/mtd/nand.h>
 #include <linux/phy.h>
 #include <linux/ethtool.h>
+#include <linux/pwm/pwm.h>
+#include <linux/pwm_backlight.h>
 
 #include <mach/hardware.h>
 
@@ -81,6 +83,12 @@ static struct omap_board_mux board_mux[] __initdata = {
 #else
 #define board_mux       NULL
 #endif
+
+#define AM335X_BACKLIGHT_MAX_BRIGHTNESS		100
+#define AM335X_BACKLIGHT_DEFAULT_BRIGHTNESS	100
+#define AM335X_PWM_PERIOD_NANO_SECONDS		100000
+
+#define PWM_DEVICE_ID	"ecap.0"
 
 static const struct display_panel disp_panel = {
 	VGA,
@@ -271,6 +279,13 @@ static struct pinmux_config lcdc_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Module pin mux for eCAP0 */
+static struct pinmux_config ecap0_pin_mux[] = {
+	{"ecap0_in_pwm0_out.ecap0_in_pwm0_out",
+		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
 /* mmc0 platform data */
 static struct omap2_hsmmc_info am335x_mmc[] __initdata	= {
 	{
@@ -351,6 +366,35 @@ static struct da8xx_lcdc_platform_data lcdc_pdata[] = {
 static struct da8xx_lcdc_selection_platform_data lcdc_selection_pdata = {
 	.entries_ptr = lcdc_pdata,
 	.entries_cnt = ARRAY_SIZE(lcdc_pdata)
+};
+
+/* lcd backlight platform data */
+static struct platform_pwm_backlight_data am335x_backlight_data = {
+	.pwm_id		= PWM_DEVICE_ID,
+	.ch		= -1,
+	.max_brightness	= AM335X_BACKLIGHT_MAX_BRIGHTNESS,
+	.dft_brightness = AM335X_BACKLIGHT_DEFAULT_BRIGHTNESS,
+	.pwm_period_ns	= AM335X_PWM_PERIOD_NANO_SECONDS,
+};
+
+static int backlight_enable;
+
+static void enable_ecap0(void)
+{
+	backlight_enable = true;
+}
+
+/* pwm-backlight platform data */
+static struct platform_device am335x_backlight = {
+	.name		= "pwm-backlight",
+	.id		= -1,
+	.dev		= {
+		.platform_data  = &am335x_backlight_data,
+	}
+};
+
+static struct pwmss_platform_data pwm_pdata = {
+	.version = PWM_VERSION_1
 };
 
 /* Regulator info */
@@ -581,6 +625,20 @@ static void pcm051lb_lcdc_init(void)
 	return;
 }
 
+/* PWM ecap initialization */
+static int __init ecap0_init(void)
+{
+	int status = 0;
+
+	if (backlight_enable) {
+		setup_pin_mux(ecap0_pin_mux);
+		am33xx_register_ecap(0, &pwm_pdata);
+		platform_device_register(&am335x_backlight);
+	}
+	return status;
+}
+late_initcall(ecap0_init);
+
 /* AM33XX devices support DDR2 power down */
 static struct am33xx_cpuidle_config am33xx_cpuidle_pdata = {
 	.ddr2_pdown = 1,
@@ -629,6 +687,7 @@ static void __init pcm051lb_init(void)
 	pcm051lb_net_init();
 	d_can_init();
 	pcm051lb_lcdc_init();
+	enable_ecap0();
 }
 
 static void __init pcm051lb_map_io(void)
