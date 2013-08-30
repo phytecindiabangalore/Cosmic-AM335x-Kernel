@@ -34,6 +34,8 @@
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
 #include <linux/mtd/nand.h>
+#include <linux/phy.h>
+#include <linux/ethtool.h>
 
 #include <mach/hardware.h>
 
@@ -166,6 +168,22 @@ static struct pinmux_config usb1_pin_mux[] = {
 	{"usb1_drvvbus.usb1_drvvbus",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{"mcasp0_aclkr.gpio3_18",	OMAP_MUX_MODE7 | AM33XX_PULL_ENBL |
 					AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+/* pin mux for rmii1 */
+static struct pinmux_config rmii1_pin_mux[] = {
+	{"mii1_crs.rmii1_crs_dv", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_rxerr.mii1_rxerr", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_txen.mii1_txen",	OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"mii1_txd1.mii1_txd1",	OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"mii1_txd0.mii1_txd0",	OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"mii1_rxd1.mii1_rxd1",	OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_rxd0.mii1_rxd0",	OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"rmii1_refclk.rmii1_refclk", OMAP_MUX_MODE0 |
+						AM33XX_PIN_INPUT_PULLDOWN},
+	{"mdio_data.mdio_data",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mdio_clk.mdio_clk",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
 	{NULL, 0},
 };
 
@@ -389,6 +407,19 @@ static void pcm051lb_usb_init(void)
 	return;
 }
 
+/* Ethernet initialization */
+static void rmii1_init(void)
+{
+	setup_pin_mux(rmii1_pin_mux);
+	return;
+}
+
+static void pcm051lb_net_init(void)
+{
+	rmii1_init();
+	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII, NULL, NULL);
+}
+
 static struct resource am33xx_cpuidle_resources[] = {
 	{
 		.start		= AM33XX_EMIF0_BASE,
@@ -442,6 +473,7 @@ static void __init pcm051lb_init(void)
 	omap_sdrc_init(NULL, NULL);
 	pcm051lb_nand_init();
 	pcm051lb_usb_init();
+	pcm051lb_net_init();
 }
 
 static void __init pcm051lb_map_io(void)
