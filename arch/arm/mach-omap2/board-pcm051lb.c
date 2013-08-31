@@ -38,6 +38,10 @@
 #include <linux/ethtool.h>
 #include <linux/pwm/pwm.h>
 #include <linux/pwm_backlight.h>
+/* TSc controller */
+#include <linux/input/ti_tsc.h>
+#include <linux/mfd/ti_tscadc.h>
+#include <linux/platform_data/ti_adc.h>
 
 #include <mach/hardware.h>
 
@@ -397,6 +401,17 @@ static struct pwmss_platform_data pwm_pdata = {
 	.version = PWM_VERSION_1
 };
 
+/* TSc platform data */
+static struct tsc_data am335x_touchscreen_data = {
+	.wires	= 4,
+	.x_plate_resistance = 200,
+	.steps_to_configure = 5,
+};
+
+static struct mfd_tscadc_board tscadc = {
+	.tsc_init	= &am335x_touchscreen_data,
+};
+
 /* Regulator info */
 static struct regulator_init_data am335x_dummy = {
 	.constraints.always_on	= true,
@@ -639,6 +654,16 @@ static int __init ecap0_init(void)
 }
 late_initcall(ecap0_init);
 
+/* TSc initialization */
+static void pcm051lb_tsc_init(void)
+{
+	int err;
+
+	err = am33xx_register_mfd_tscadc(&tscadc);
+	if (err)
+		pr_err("failed to register touchscreen device\n");
+}
+
 /* AM33XX devices support DDR2 power down */
 static struct am33xx_cpuidle_config am33xx_cpuidle_pdata = {
 	.ddr2_pdown = 1,
@@ -688,6 +713,7 @@ static void __init pcm051lb_init(void)
 	d_can_init();
 	pcm051lb_lcdc_init();
 	enable_ecap0();
+	pcm051lb_tsc_init();
 }
 
 static void __init pcm051lb_map_io(void)
