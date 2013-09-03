@@ -290,6 +290,25 @@ static struct pinmux_config ecap0_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* pin mux for buttons and LEDs */
+static struct pinmux_config btn_led_pin_mux[] = {
+	/* user buttons */
+	{"uart0_rtsn.gpio1_9", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_a8.gpio1_24", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_a4.gpio1_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+
+	/* user LEDS */
+	{"emu0.gpio3_7", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT
+						| AM33XX_PIN_INPUT},
+	{"gpmc_a11.gpio1_27", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT
+						| AM33XX_PIN_INPUT},
+	{"gpmc_a10.gpio1_26", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT
+						| AM33XX_PIN_INPUT},
+	{"gpmc_a5.gpio1_21", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT
+						| AM33XX_PIN_INPUT},
+	{NULL, 0},
+};
+
 /* mmc0 platform data */
 static struct omap2_hsmmc_info am335x_mmc[] __initdata	= {
 	{
@@ -664,6 +683,13 @@ static void pcm051lb_tsc_init(void)
 		pr_err("failed to register touchscreen device\n");
 }
 
+/* button and led initialization initialization */
+static void pcm051lb_btn_led_init(void)
+{
+	setup_pin_mux(btn_led_pin_mux);
+	return;
+}
+
 /* AM33XX devices support DDR2 power down */
 static struct am33xx_cpuidle_config am33xx_cpuidle_pdata = {
 	.ddr2_pdown = 1,
@@ -714,6 +740,7 @@ static void __init pcm051lb_init(void)
 	pcm051lb_lcdc_init();
 	enable_ecap0();
 	pcm051lb_tsc_init();
+	pcm051lb_btn_led_init();
 }
 
 static void __init pcm051lb_map_io(void)
