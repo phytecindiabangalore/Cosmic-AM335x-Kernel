@@ -38,6 +38,7 @@
 #include <linux/ethtool.h>
 #include <linux/pwm/pwm.h>
 #include <linux/pwm_backlight.h>
+#include <linux/rtc/rtc-omap.h>
 /* TSc controller */
 #include <linux/input/ti_tsc.h>
 #include <linux/mfd/ti_tscadc.h>
@@ -154,13 +155,6 @@ static struct pinmux_config i2c0_pin_mux[] = {
 				AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT},
 	{"i2c0_scl.i2c0_scl", OMAP_MUX_MODE0 | AM33XX_SLEWCTRL_SLOW |
 				AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT},
-	{NULL, 0},
-};
-
-/* pin-mux for RTC */
-static struct pinmux_config rtc_pin_mux[] = {
-	{"xdma_event_intr1.gpio0_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
-	{"mii1_rxdv.gpio3_4", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 	{NULL, 0},
 };
 
@@ -296,6 +290,7 @@ static struct pinmux_config btn_led_pin_mux[] = {
 	{"uart0_rtsn.gpio1_9", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 	{"gpmc_a8.gpio1_24", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 	{"gpmc_a4.gpio1_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{"mii1_rxdv.gpio3_4", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 
 	/* user LEDS */
 	{"emu0.gpio3_7", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT
@@ -431,6 +426,12 @@ static struct mfd_tscadc_board tscadc = {
 	.tsc_init	= &am335x_touchscreen_data,
 };
 
+/* RTC platform data */
+static struct omap_rtc_pdata am335x_rtc_info = {
+	.pm_off		= false,
+	.wakeup_capable	= 0,
+};
+
 /* Regulator info */
 static struct regulator_init_data am335x_dummy = {
 	.constraints.always_on	= true,
@@ -503,9 +504,6 @@ static struct i2c_board_info __initdata pcm051lb_i2c0_boardinfo[] = {
 		.platform_data  = &am335x_tps65910_info,
 	},
 	{
-		I2C_BOARD_INFO("rv4162c7", 0x68),
-	},
-	{
 		I2C_BOARD_INFO("24c32", 0x52),
 	},
 	{},
@@ -536,35 +534,6 @@ static void pcm051lb_spi0_init(void)
 	spi_register_board_info(am335x_spi0_slave_info,
 			ARRAY_SIZE(am335x_spi0_slave_info));
 	return;
-}
-
-/* RTC interrupt initialization */
-static void __init pcm051lb_rtc_irq_init(void)
-{
-	int r;
-
-	setup_pin_mux(rtc_pin_mux);
-
-	/* Option 1: RV-4162 */
-	r = gpio_request_one(GPIO_RTC_RV4162C7_IRQ,
-				GPIOF_IN, "rtc-rv4162c7-irq");
-	if (r < 0) {
-		printk(KERN_WARNING "failed to request GPIO%d\n",
-				GPIO_RTC_RV4162C7_IRQ);
-		return;
-	}
-
-	pcm051lb_i2c0_boardinfo[2].irq = gpio_to_irq(GPIO_RTC_RV4162C7_IRQ);
-
-	/* Option 2: RTC in the TPS65910 PMIC */
-	if (omap_mux_init_signal("mii1_rxdv.gpio3_4", AM33XX_PIN_INPUT_PULLUP))
-		printk(KERN_WARNING "Failed to mux PMIC IRQ\n");
-	else if (gpio_request_one(GPIO_RTC_PMIC_IRQ,
-				GPIOF_IN, "rtc-tps65910-irq") < 0)
-		printk(KERN_WARNING "failed to request GPIO%d\n",
-				GPIO_RTC_PMIC_IRQ);
-	else
-		am335x_tps65910_info.irq = gpio_to_irq(GPIO_RTC_PMIC_IRQ);
 }
 
 /* NAND initialization */
@@ -690,6 +659,60 @@ static void pcm051lb_btn_led_init(void)
 	return;
 }
 
+/* AM335x internal RTC initialization */
+static void am335x_rtc_init(void)
+{
+	void __iomem *base;
+	struct clk *clk;
+	struct omap_hwmod *oh;
+	struct platform_device *pdev;
+	char *dev_name = "am33xx-rtc";
+
+	clk = clk_get(NULL, "rtc_fck");
+	if (IS_ERR(clk)) {
+		pr_err("rtc : Failed to get RTC clock\n");
+		return;
+	}
+
+	if (clk_enable(clk)) {
+		pr_err("rtc: Clock Enable Failed\n");
+		return;
+	}
+
+	base = ioremap(AM33XX_RTC_BASE, SZ_4K);
+
+	if (WARN_ON(!base))
+		return;
+
+	/* Unlock the rtc's registers */
+	writel(0x83e70b13, base + 0x6c);
+	writel(0x95a4f1e0, base + 0x70);
+
+	/*
+	 * Enable the 32K OSc
+	 * TODO: Need a better way to handle this
+	 * Since we want the clock to be running before mmc init
+	 * we need to do it before the rtc probe happens
+	 */
+
+	writel(0x48, base + 0x54);
+
+	iounmap(base);
+
+	clk_disable(clk);
+	clk_put(clk);
+	oh = omap_hwmod_lookup("rtc");
+	if (!oh) {
+		pr_err("could not look up %s\n", "rtc");
+		return;
+	}
+
+	pdev = omap_device_build(dev_name, -1, oh, &am335x_rtc_info,
+			sizeof(struct omap_rtc_pdata), NULL, 0, 0);
+	WARN(IS_ERR(pdev), "Can't build omap_device for %s:%s.\n",
+			dev_name, oh->name);
+}
+
 /* AM33XX devices support DDR2 power down */
 static struct am33xx_cpuidle_config am33xx_cpuidle_pdata = {
 	.ddr2_pdown = 1,
@@ -730,7 +753,7 @@ static void __init pcm051lb_init(void)
 	pcm051lb_mux_init();
 	omap_serial_init();
 	am33xx_mux_init(board_mux);
-	pcm051lb_rtc_irq_init();
+	am335x_rtc_init();
 	/* SDRAM controller initialization */
 	omap_sdrc_init(NULL, NULL);
 	pcm051lb_nand_init();
