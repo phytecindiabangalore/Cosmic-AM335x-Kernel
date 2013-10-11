@@ -257,6 +257,7 @@ obj-$(CONFIG_MACH_AM335XEVM)		+= board-am335xevm.o
 obj-$(CONFIG_MACH_AM335XIAEVM)		+= board-am335xevm.o
 
 obj-$(CONFIG_MACH_PCM051)		+= board-pcm051.o
+obj-$(CONFIG_MACH_PCM051LB)		+= board-pcm051lb.o
 obj-$(CONFIG_MACH_PCAAXS1)		+= board-pcaaxs1.o
 obj-$(CONFIG_MACH_PFLA03)		+= board-pfla03.o
 
