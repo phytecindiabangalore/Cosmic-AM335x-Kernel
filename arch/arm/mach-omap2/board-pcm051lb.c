@@ -27,6 +27,7 @@
 #include <linux/clk.h>
 #include <linux/opp.h>
 #include <linux/platform_device.h>
+#include <linux/i2c.h>
 
 #include <mach/hardware.h>
 
@@ -80,6 +81,15 @@ static struct pinmux_config mmc0_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* pin-mux for i2c0 */
+static struct pinmux_config i2c0_pin_mux[] = {
+	{"i2c0_sda.i2c0_sda", OMAP_MUX_MODE0 | AM33XX_SLEWCTRL_SLOW |
+				AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT},
+	{"i2c0_scl.i2c0_scl", OMAP_MUX_MODE0 | AM33XX_SLEWCTRL_SLOW |
+				AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
 /* mmc0 platform data */
 static struct omap2_hsmmc_info am335x_mmc[] __initdata	= {
 	{
@@ -98,6 +108,11 @@ static struct omap2_hsmmc_info am335x_mmc[] __initdata	= {
 	{}	/* Terminator */
 };
 
+/* I2C0 board info */
+static struct i2c_board_info __initdata pcm051lb_i2c0_boardinfo[] = {
+	{},
+};
+
 /* mmc0 initialization */
 static void mmc0_init(void)
 {
@@ -106,6 +121,14 @@ static void mmc0_init(void)
 	omap2_hsmmc_init(am335x_mmc);
 
 	return;
+}
+
+/* I2C0 initialization */
+static void __init pcm051lb_i2c0_init(void)
+{
+	setup_pin_mux(i2c0_pin_mux);
+	omap_register_i2c_bus(1, 100, pcm051lb_i2c0_boardinfo,
+			ARRAY_SIZE(pcm051lb_i2c0_boardinfo));
 }
 
 static struct resource am33xx_cpuidle_resources[] = {
@@ -146,6 +169,7 @@ static void __init am33xx_cpuidle_init(void)
 static void pcm051lb_mux_init(void)
 {
 	mmc0_init();
+	pcm051lb_i2c0_init();
 }
 
 static void __init pcm051lb_init(void)
