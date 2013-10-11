@@ -375,6 +375,20 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.pxl_clk = 30000000,
 		.invert_pxl_clk = 0,
 	},
+	/* display ZQ3506 */
+	[10] = {
+		.name = "ZQ_ZQ3506",
+		.width = 320,
+		.height = 240,
+		.hfp = 20,
+		.hbp = 68,
+		.hsw = 1,
+		.vfp = 4,
+		.vbp = 13,
+		.vsw = 0,
+		.pxl_clk = 4608000,
+		.invert_pxl_clk = 0,
+	},
 };
 
 static inline bool is_raster_enabled(void)

@@ -378,7 +378,12 @@ static struct da8xx_lcdc_platform_data lcdc_pdata[] = {
 		.manu_name		= "HTdisplay",
 		.controller_data	= &lcd_cfg,
 		.type			= "HT_HT800070I",
+	}, {
+		.manu_name		= "ZQdisplay",
+		.controller_data	= &lcd_cfg,
+		.type			= "ZQ_ZQ3506",
 	},
+
 };
 
 static struct da8xx_lcdc_selection_platform_data lcdc_selection_pdata = {
