@@ -51,6 +51,41 @@ static struct pinmux_config gpio_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Pin-mux for GPIO which having conflict with rgmii2 */
+static struct pinmux_config gpio_wifi_rgmi_pin_mux[] = {
+	{"gpmc_a0.gpio1_16", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"gpmc_a1.gpio1_17", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"gpmc_a2.gpio1_18", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"gpmc_a3.gpio1_19", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_a4.gpio1_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_a5.gpio1_21", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_a6.gpio1_22", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_a7.gpio1_23", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_a8.gpio1_24", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_a9.gpio1_25", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_a10.gpio1_26", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_a11.gpio1_27", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_ben1.gpio1_28", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_csn3.gpio2_0", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_clk.gpio2_1", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
 /* Pin-mux for RGMII2 */
 static struct pinmux_config rgmii2_pin_mux[] = {
 	{"gpmc_a0.rgmii2_tctl", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
@@ -96,6 +131,13 @@ static void rgmii2_init(void)
 	return;
 }
 
+static void gpio_init(void)
+{
+	printk(KERN_INFO"Phytec AM335X : GPIO Init\n");
+	setup_pin_mux(gpio_wifi_rgmi_pin_mux);
+	return;
+}
+
 struct devices {
 	char *device_name;
 	void (*device_init) (void);
@@ -109,7 +151,27 @@ struct devices cosmic_am335x_device[] = {
 
 static void rgmii2_gpio_config(void)
 {
-	rgmii2_init();
+	static int count;
+	static int mux_val;
+
+	if (strcmp("GPIO", cosmic_am335x_device[i].device_name) == 0)
+			mux_val = 1;
+	else if (strcmp("RGMII2", cosmic_am335x_device[i].device_name) == 0)
+			mux_val = 2;
+
+	if (count < 1) {
+		switch (mux_val) {
+		case 1:
+			gpio_init();
+			count++;
+			break;
+		case 2:
+			rgmii2_init();
+			count++;
+			break;
+		}
+	} else
+	printk(KERN_INFO"\nYou can only use RGMII2 or Conflict GPIO at a time\n");
 	setup_pin_mux(gpio_pin_mux);
 	return;
 }
