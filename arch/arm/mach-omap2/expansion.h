@@ -1,10 +1,12 @@
-#define DEVICE 0
+#define DEVICE 1
 
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
 
 static int i;
 char cosmic_am335_devices_setup_str[80] = "none";
+
+static void gpio_config(void);
 
 /* module pin mux structure */
 struct pinmux_config {
@@ -23,6 +25,31 @@ static void setup_pin_mux(struct pinmux_config *pin_mux)
 	for (i = 0; pin_mux->string_name != NULL; pin_mux++)
 		omap_mux_init_signal(pin_mux->string_name, pin_mux->val);
 }
+
+/* Pin-mux for GPIO */
+static struct pinmux_config gpio_pin_mux[] = {
+	{"mcasp0_fsr.gpio3_19", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"mii1_rxdv.gpio3_4", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"gpmc_csn1.gpio1_30", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"emu0.gpio3_7", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"gpmc_csn2.gpio1_31", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"gpmc_wpn.gpio0_31", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"mcasp0_aclkx.gpio3_14", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"mcasp0_ahclkx.gpio3_21", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"mcasp0_axr1.gpio3_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{"xdma_event_intr1.gpio0_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+					AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
 
 /* Platform Data for MMC */
 
@@ -49,8 +76,15 @@ struct devices {
 };
 
 struct devices cosmic_am335x_device[] = {
+	{"GPIO", gpio_config},
 	{"NULL", NULL },
 };
+
+static void gpio_config(void)
+{
+	setup_pin_mux(gpio_pin_mux);
+	return;
+}
 
 void device_parser(char *device)
 {
