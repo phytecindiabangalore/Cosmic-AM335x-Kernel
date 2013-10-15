@@ -70,9 +70,7 @@
 #include "am33xx_generic.h"
 #include "board-flash.h"
 #include "devices.h"
-
-/* convert GPIO signal to GPIO pin number */
-#define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
+#include "expansion.h"
 
 #define GPIO_RTC_RV4162C7_IRQ	GPIO_TO_PIN(0, 20)
 #define GPIO_RTC_PMIC_IRQ	GPIO_TO_PIN(3, 4)
@@ -118,24 +116,6 @@ static struct lcd_ctrl_config lcd_cfg = {
 	.sync_ctrl		= 1,
 	.raster_order		= 0,
 };
-
-/* module pin mux structure */
-struct pinmux_config {
-	const char *string_name; /* signal name format */
-	int val; /* options for the mux register value */
-};
-
-/*
-* @pin_mux - single module pin-mux structure which defines
-*	pin-mux details for all its pins
-*/
-static void setup_pin_mux(struct pinmux_config *pin_mux)
-{
-	int i;
-
-	for (i = 0; pin_mux->string_name != NULL; pin_mux++)
-		omap_mux_init_signal(pin_mux->string_name, pin_mux->val);
-}
 
 /* pin-mux for mmc0 */
 static struct pinmux_config mmc0_pin_mux[] = {
@@ -302,24 +282,6 @@ static struct pinmux_config btn_led_pin_mux[] = {
 	{"gpmc_a5.gpio1_21", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT
 						| AM33XX_PIN_INPUT},
 	{NULL, 0},
-};
-
-/* mmc0 platform data */
-static struct omap2_hsmmc_info am335x_mmc[] __initdata	= {
-	{
-		.mmc		= 1,
-		.caps		= MMC_CAP_4_BIT_DATA,
-		.gpio_cd	= GPIO_TO_PIN(0, 6),
-		.gpio_wp	= -EINVAL,
-		.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
-	},
-	{
-		.mmc		= 0,    /* will be set at runtime */
-	},
-	{
-		.mmc		= 0,    /* will be set at runtime */
-	},
-	{}	/* Terminator */
 };
 
 /* SPI flash platform data */
@@ -744,6 +706,16 @@ static void __init am33xx_cpuidle_init(void)
 		pr_warning("AM33XX cpuidle registration failed\n");
 }
 
+static int __init cosmic_am335_devices_setup(char *str)
+{
+	if (str)
+		strlcpy(cosmic_am335_devices_setup_str, str\
+			, sizeof(cosmic_am335_devices_setup_str));
+	return 1;
+}
+
+__setup("Devices=", cosmic_am335_devices_setup);
+
 /* muxing initialization */
 static void pcm051lb_mux_init(void)
 {
@@ -769,6 +741,7 @@ static void __init pcm051lb_init(void)
 	enable_ecap0();
 	pcm051lb_tsc_init();
 	pcm051lb_btn_led_init();
+	expansion_init();
 }
 
 static void __init pcm051lb_map_io(void)
