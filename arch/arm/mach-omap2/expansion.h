@@ -1,4 +1,4 @@
-#define DEVICE 1
+#define DEVICE 2
 
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
@@ -6,7 +6,7 @@
 static int i;
 char cosmic_am335_devices_setup_str[80] = "none";
 
-static void gpio_config(void);
+static void rgmii2_gpio_config(void);
 
 /* module pin mux structure */
 struct pinmux_config {
@@ -51,6 +51,25 @@ static struct pinmux_config gpio_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Pin-mux for RGMII2 */
+static struct pinmux_config rgmii2_pin_mux[] = {
+	{"gpmc_a0.rgmii2_tctl", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a1.rgmii2_rctl", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a2.rgmii2_td3", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a3.rgmii2_td2", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a4.rgmii2_td1", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a5.rgmii2_td0", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a6.rgmii2_tclk", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a7.rgmii2_rclk", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a8.rgmii2_rd3", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a9.rgmii2_rd2", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a10.rgmii2_rd1", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a11.rgmii2_rd0", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
+	{NULL, 0},
+};
+
 /* Platform Data for MMC */
 
 static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
@@ -70,18 +89,27 @@ static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
 	{}      /* Terminator */
 };
 
+static void rgmii2_init(void)
+{
+	printk(KERN_INFO"Phytec AM335X : RGMII2 Init\n");
+	setup_pin_mux(rgmii2_pin_mux);
+	return;
+}
+
 struct devices {
 	char *device_name;
 	void (*device_init) (void);
 };
 
 struct devices cosmic_am335x_device[] = {
-	{"GPIO", gpio_config},
+	{"GPIO", rgmii2_gpio_config},
+	{"RGMII2", rgmii2_gpio_config},
 	{"NULL", NULL },
 };
 
-static void gpio_config(void)
+static void rgmii2_gpio_config(void)
 {
+	rgmii2_init();
 	setup_pin_mux(gpio_pin_mux);
 	return;
 }
