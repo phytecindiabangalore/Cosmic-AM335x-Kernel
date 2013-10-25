@@ -1,12 +1,13 @@
-#define DEVICE 3
+#define DEVICE 5
 
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
 
-static int i, wifien;
+static int i, wifien, i2c2en;
 char cosmic_am335_devices_setup_str[80] = "none";
 
 static void wifibt_rgmii2_gpio_config(void);
+static void uart1_i2c2_config(void);
 
 /* module pin mux structure */
 struct pinmux_config {
@@ -145,6 +146,15 @@ static struct pinmux_config wl12xx_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Module pin mux for I2C2 */
+static struct pinmux_config i2c2_pin_mux[] = {
+	{"uart1_ctsn.i2c2_sda", OMAP_MUX_MODE3 | AM33XX_SLEWCTRL_SLOW |
+					AM33XX_PULL_UP | AM33XX_INPUT_EN},
+	{"uart1_rtsn.i2c2_scl", OMAP_MUX_MODE3 | AM33XX_SLEWCTRL_SLOW |
+					AM33XX_PULL_UP | AM33XX_INPUT_EN},
+	{NULL, 0},
+};
+
 /* Platform Data for MMC */
 
 static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
@@ -208,6 +218,7 @@ static void mmc2_wl12xx_init(void)
 
 static void uart1_wl12xx_init(void)
 {
+	printk(KERN_INFO"Phytec-AM335X : UART1 Full modem support\n");
 	setup_pin_mux(uart1_wl12xx_pin_mux);
 }
 
@@ -289,6 +300,18 @@ static void wifi_bt_init(void)
 	return;
 }
 
+static void i2c2_init(void)
+{
+	if (wifien == 1)
+		printk(KERN_INFO"\nYou can not use I2C2 when using WIFI-BT\n");
+	else {
+		setup_pin_mux(i2c2_pin_mux);
+		printk(KERN_INFO"Phytec-AM335X : I2C2 support\n");
+		i2c2en++;
+	}
+	return;
+}
+
 struct devices {
 	char *device_name;
 	void (*device_init) (void);
@@ -298,6 +321,8 @@ struct devices cosmic_am335x_device[] = {
 	{"GPIO", wifibt_rgmii2_gpio_config},
 	{"RGMII2", wifibt_rgmii2_gpio_config},
 	{"WIFI-BT", wifibt_rgmii2_gpio_config},
+	{"UART1FULL", uart1_i2c2_config},
+	{"I2C2", uart1_i2c2_config},
 	{"NULL", NULL },
 };
 
@@ -323,13 +348,41 @@ static void wifibt_rgmii2_gpio_config(void)
 			count++;
 			break;
 		case 3:
-			wifi_bt_init();
+			if (i2c2en == 1)
+				printk(KERN_INFO"\nYou can use only I2C2 or WIFI-BT at a time\n");
+			else
+				wifi_bt_init();
 			count++;
 			break;
 		}
 	} else
-	printk(KERN_INFO"\nYou can only use RGMII2 or Conflict GPIO at a time\n");
+	printk(KERN_INFO"\nYou can use only RGMII2 or Conflict GPIO at a time\n");
 	setup_pin_mux(gpio_pin_mux);
+	return;
+}
+
+static void uart1_i2c2_config(void)
+{
+	static int count;
+	static int mux_val;
+
+	if (strcmp("UART1FULL", cosmic_am335x_device[i].device_name) == 0)
+			mux_val = 1;
+	if (strcmp("I2C2", cosmic_am335x_device[i].device_name) == 0)
+			mux_val = 2;
+	if (count < 1) {
+		switch (mux_val) {
+		case 1:
+			uart1_wl12xx_init();
+			count++;
+			break;
+		case 2:
+			i2c2_init();
+			count++;
+			break;
+		}
+	} else
+	printk(KERN_INFO"\nYou can use only UART1-Full modem or I2C2 at a time\n");
 	return;
 }
 
