@@ -1842,6 +1842,9 @@ static u8 wl12xx_get_role_type(struct wl1271 *wl)
 #define WLAN_EN          56 /* 32 * bank (1) + gpio (24)*/
 #endif
 
+#ifdef CONFIG_MACH_PCM051LB
+#define WLAN_EN          55 /* 32 * bank (1) + gpio (23)*/
+#endif
 static int wl1271_op_add_interface(struct ieee80211_hw *hw,
 				   struct ieee80211_vif *vif)
 {
@@ -1855,6 +1858,10 @@ static int wl1271_op_add_interface(struct ieee80211_hw *hw,
 	wl1271_debug(DEBUG_MAC80211, "mac80211 add interface type %d mac %pM",
 		     ieee80211_vif_type_p2p(vif), vif->addr);
 #ifdef CONFIG_MACH_PCM051
+	gpio_direction_output(WLAN_EN, 1);
+#endif
+
+#ifdef CONFIG_MACH_PCM051LB
 	gpio_direction_output(WLAN_EN, 1);
 #endif
 
@@ -1994,6 +2001,11 @@ power_off:
 
 out:
 #ifdef CONFIG_MACH_PCM051
+	if (ret < 0)
+		gpio_direction_output(WLAN_EN, 0);
+#endif
+
+#ifdef CONFIG_MACH_PCM051LB
 	if (ret < 0)
 		gpio_direction_output(WLAN_EN, 0);
 #endif

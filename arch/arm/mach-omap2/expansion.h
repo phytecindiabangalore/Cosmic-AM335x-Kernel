@@ -1,12 +1,12 @@
-#define DEVICE 2
+#define DEVICE 3
 
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
 
-static int i;
+static int i, wifien;
 char cosmic_am335_devices_setup_str[80] = "none";
 
-static void rgmii2_gpio_config(void);
+static void wifibt_rgmii2_gpio_config(void);
 
 /* module pin mux structure */
 struct pinmux_config {
@@ -25,6 +25,18 @@ static void setup_pin_mux(struct pinmux_config *pin_mux)
 	for (i = 0; pin_mux->string_name != NULL; pin_mux++)
 		omap_mux_init_signal(pin_mux->string_name, pin_mux->val);
 }
+
+/* pin-mux for mmc0 */
+static struct pinmux_config mmc0_pin_mux[] = {
+	{"mmc0_dat3.mmc0_dat3", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_dat2.mmc0_dat2", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_dat1.mmc0_dat1", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_dat0.mmc0_dat0", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_clk.mmc0_clk",   OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_cmd.mmc0_cmd",   OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"spi0_cs1.mmc0_sdcd",  OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
 
 /* Pin-mux for GPIO */
 static struct pinmux_config gpio_pin_mux[] = {
@@ -105,6 +117,34 @@ static struct pinmux_config rgmii2_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Module pin mux for wlan and bluetooth */
+static struct pinmux_config mmc2_wl12xx_pin_mux[] = {
+	{"gpmc_a1.mmc2_dat0", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_a2.mmc2_dat1", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_a3.mmc2_dat2", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ben1.mmc2_dat3", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_csn3.mmc2_cmd", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_clk.mmc2_clk", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+static struct pinmux_config uart1_wl12xx_pin_mux[] = {
+	{"uart1_ctsn.uart1_ctsn", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"uart1_rtsn.uart1_rtsn", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT},
+	{"uart1_rxd.uart1_rxd", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"uart1_txd.uart1_txd", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL},
+	{NULL, 0},
+};
+
+static struct pinmux_config wl12xx_pin_mux[] = {
+	{"gpmc_a6.gpio1_22", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT_PULLUP},
+	{"gpmc_a7.gpio1_23", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a9.gpio1_25", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
+	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
+	{NULL, 0},
+};
+
 /* Platform Data for MMC */
 
 static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
@@ -138,18 +178,130 @@ static void gpio_init(void)
 	return;
 }
 
+#define PCM051_WLAN_IRQ_GPIO    GPIO_TO_PIN(1, 25)
+#define PCM051_WLAN_EN          GPIO_TO_PIN(1, 23)
+#define PCM051_BT_EN            GPIO_TO_PIN(1, 22)
+
+struct wl12xx_platform_data pcm051_wlan_data = {
+	.irq = OMAP_GPIO_IRQ(PCM051_WLAN_IRQ_GPIO),
+	.board_ref_clock = WL12XX_REFCLOCK_38_XTAL, /* 38.4Mhz */
+	.bt_enable_gpio = PCM051_BT_EN,
+	.wlan_enable_gpio = PCM051_WLAN_EN,
+};
+
+static void mmc2_wl12xx_init(void)
+{
+	setup_pin_mux(mmc2_wl12xx_pin_mux);
+
+	am335x_mmc[1].mmc = 3;
+	am335x_mmc[1].name = "wl1271";
+	am335x_mmc[1].caps = MMC_CAP_4_BIT_DATA | MMC_CAP_POWER_OFF_CARD;
+	am335x_mmc[1].nonremovable = true;
+	am335x_mmc[1].gpio_cd = -EINVAL;
+	am335x_mmc[1].gpio_wp = -EINVAL;
+	/* am335x_mmc[1].ocr_mask = MMC_VDD_165_195; */ /* 1V8 */
+	am335x_mmc[1].ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34; /* 3V3 */
+
+	/* mmc will be initialized when mmc0_init is called */
+	return;
+}
+
+static void uart1_wl12xx_init(void)
+{
+	setup_pin_mux(uart1_wl12xx_pin_mux);
+}
+
+static void wl12xx_bluetooth_enable(void)
+{
+	int status = gpio_request(pcm051_wlan_data.bt_enable_gpio,
+		"bt_en\n");
+	if (status < 0)
+		pr_err("Failed to request gpio for bt_enable");
+
+	pr_info("Configure Bluetooth Enable pin...\n");
+	gpio_direction_output(pcm051_wlan_data.bt_enable_gpio, 0);
+}
+
+static int wl12xx_set_power(struct device *dev, int slot, int on, int vdd)
+{
+	if (on) {
+		gpio_direction_output(pcm051_wlan_data.wlan_enable_gpio, 1);
+		mdelay(70);
+	} else {
+		gpio_direction_output(pcm051_wlan_data.wlan_enable_gpio, 0);
+	}
+
+	return 0;
+}
+
+static void wl12xx_init(void)
+{
+	struct device *dev;
+	struct omap_mmc_platform_data *pdata;
+	int ret;
+
+	setup_pin_mux(wl12xx_pin_mux);
+	wl12xx_bluetooth_enable();
+
+	if (wl12xx_set_platform_data(&pcm051_wlan_data))
+		pr_err("error setting wl12xx data\n");
+
+	dev = am335x_mmc[1].dev;
+	if (!dev) {
+		pr_err("wl12xx mmc device initialization failed\n");
+		goto out;
+	}
+
+	pdata = dev->platform_data;
+	if (!pdata) {
+		pr_err("Platfrom data of wl12xx device not set\n");
+		goto out;
+	}
+
+	ret = gpio_request_one(pcm051_wlan_data.wlan_enable_gpio,
+		GPIOF_OUT_INIT_LOW, "wlan_en");
+	if (ret) {
+		pr_err("Error requesting wlan enable gpio: %d\n", ret);
+		goto out;
+	}
+
+	pdata->slots[0].set_power = wl12xx_set_power;
+out:
+	return;
+}
+
+static void mmc0_init(void)
+{
+	setup_pin_mux(mmc0_pin_mux);
+
+	omap2_hsmmc_init(am335x_mmc);
+	return;
+}
+
+static void wifi_bt_init(void)
+{
+	printk(KERN_INFO"Phytec AM335X : WIFI-BT Init\n");
+	mmc2_wl12xx_init();
+	mmc0_init();
+	uart1_wl12xx_init();
+	wl12xx_init();
+	wifien++;
+	return;
+}
+
 struct devices {
 	char *device_name;
 	void (*device_init) (void);
 };
 
 struct devices cosmic_am335x_device[] = {
-	{"GPIO", rgmii2_gpio_config},
-	{"RGMII2", rgmii2_gpio_config},
+	{"GPIO", wifibt_rgmii2_gpio_config},
+	{"RGMII2", wifibt_rgmii2_gpio_config},
+	{"WIFI-BT", wifibt_rgmii2_gpio_config},
 	{"NULL", NULL },
 };
 
-static void rgmii2_gpio_config(void)
+static void wifibt_rgmii2_gpio_config(void)
 {
 	static int count;
 	static int mux_val;
@@ -158,7 +310,8 @@ static void rgmii2_gpio_config(void)
 			mux_val = 1;
 	else if (strcmp("RGMII2", cosmic_am335x_device[i].device_name) == 0)
 			mux_val = 2;
-
+	else if (strcmp("WIFI-BT", cosmic_am335x_device[i].device_name) == 0)
+			mux_val = 3;
 	if (count < 1) {
 		switch (mux_val) {
 		case 1:
@@ -167,6 +320,10 @@ static void rgmii2_gpio_config(void)
 			break;
 		case 2:
 			rgmii2_init();
+			count++;
+			break;
+		case 3:
+			wifi_bt_init();
 			count++;
 			break;
 		}

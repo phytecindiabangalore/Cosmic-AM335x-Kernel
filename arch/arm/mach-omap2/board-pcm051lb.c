@@ -39,6 +39,7 @@
 #include <linux/pwm/pwm.h>
 #include <linux/pwm_backlight.h>
 #include <linux/rtc/rtc-omap.h>
+#include <linux/wl12xx.h>
 /* TSc controller */
 #include <linux/input/ti_tsc.h>
 #include <linux/mfd/ti_tscadc.h>
@@ -115,18 +116,6 @@ static struct lcd_ctrl_config lcd_cfg = {
 	.sync_edge		= 0,
 	.sync_ctrl		= 1,
 	.raster_order		= 0,
-};
-
-/* pin-mux for mmc0 */
-static struct pinmux_config mmc0_pin_mux[] = {
-	{"mmc0_dat3.mmc0_dat3", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
-	{"mmc0_dat2.mmc0_dat2", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
-	{"mmc0_dat1.mmc0_dat1", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
-	{"mmc0_dat0.mmc0_dat0", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
-	{"mmc0_clk.mmc0_clk",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
-	{"mmc0_cmd.mmc0_cmd",	OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
-	{"spi0_cs1.mmc0_sdcd",	OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
-	{NULL, 0},
 };
 
 /* pin-mux for i2c0 */
@@ -284,6 +273,14 @@ static struct pinmux_config btn_led_pin_mux[] = {
 	{NULL, 0},
 };
 
+static void pcm051_mux_init(void)
+{
+	expansion_init();
+	if (wifien == 0)
+		mmc0_init();
+	return;
+}
+
 /* SPI flash platform data */
 static const struct flash_platform_data am335x_spi_flash = {
 	.type	= "w25q64",
@@ -420,7 +417,7 @@ static struct regulator_init_data am335x_vdd1 = {
 	.consumer_supplies	= am335x_vdd1_supply,
 };
 
-struct tps65910_board am335x_tps65910_info = {
+static struct tps65910_board am335x_tps65910_info = {
 	.tps65910_pmic_init_data[TPS65910_REG_VRTC]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VIO]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VDD1]	= &am335x_vdd1,
@@ -475,16 +472,6 @@ static struct i2c_board_info __initdata pcm051lb_i2c0_boardinfo[] = {
 	},
 	{},
 };
-
-/* mmc0 initialization */
-static void mmc0_init(void)
-{
-	setup_pin_mux(mmc0_pin_mux);
-
-	omap2_hsmmc_init(am335x_mmc);
-
-	return;
-}
 
 /* I2C0 initialization */
 static void __init pcm051lb_i2c0_init(void)
@@ -719,17 +706,17 @@ __setup("Devices=", cosmic_am335_devices_setup);
 /* muxing initialization */
 static void pcm051lb_mux_init(void)
 {
-	mmc0_init();
-	pcm051lb_i2c0_init();
 	pcm051lb_spi0_init();
 }
 
 static void __init pcm051lb_init(void)
 {
 	am33xx_cpuidle_init();
+	am33xx_mux_init(board_mux);
+	pcm051lb_i2c0_init();
+	pcm051_mux_init();
 	pcm051lb_mux_init();
 	omap_serial_init();
-	am33xx_mux_init(board_mux);
 	am335x_rtc_init();
 	/* SDRAM controller initialization */
 	omap_sdrc_init(NULL, NULL);
@@ -741,7 +728,6 @@ static void __init pcm051lb_init(void)
 	enable_ecap0();
 	pcm051lb_tsc_init();
 	pcm051lb_btn_led_init();
-	expansion_init();
 }
 
 static void __init pcm051lb_map_io(void)
