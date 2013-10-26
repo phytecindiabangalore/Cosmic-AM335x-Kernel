@@ -1,4 +1,4 @@
-#define DEVICE 5
+#define DEVICE 7
 
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
@@ -8,6 +8,7 @@ char cosmic_am335_devices_setup_str[80] = "none";
 
 static void wifibt_rgmii2_gpio_config(void);
 static void uart1_i2c2_config(void);
+static void uart1_i2c1_config(void);
 
 /* module pin mux structure */
 struct pinmux_config {
@@ -152,6 +153,22 @@ static struct pinmux_config i2c2_pin_mux[] = {
 					AM33XX_PULL_UP | AM33XX_INPUT_EN},
 	{"uart1_rtsn.i2c2_scl", OMAP_MUX_MODE3 | AM33XX_SLEWCTRL_SLOW |
 					AM33XX_PULL_UP | AM33XX_INPUT_EN},
+	{NULL, 0},
+};
+
+/* Module pin mux for I2C1 */
+static struct pinmux_config i2c1_pin_mux[] = {
+	{"uart1_rxd.i2c1_sda", OMAP_MUX_MODE3 | AM33XX_SLEWCTRL_SLOW |
+					AM33XX_PULL_UP | AM33XX_INPUT_EN},
+	{"uart1_txd.i2c1_scl", OMAP_MUX_MODE3 | AM33XX_SLEWCTRL_SLOW |
+					AM33XX_PULL_UP | AM33XX_INPUT_EN},
+	{NULL, 0},
+};
+
+/* Module pin mux for UART1 Tx & Rx */
+static struct pinmux_config uart1_pin_mux[] = {
+	{"uart1_rxd.uart1_rxd", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"uart1_txd.uart1_txd", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL},
 	{NULL, 0},
 };
 
@@ -312,6 +329,20 @@ static void i2c2_init(void)
 	return;
 }
 
+static void i2c1_init(void)
+{
+	setup_pin_mux(i2c1_pin_mux);
+	printk(KERN_INFO"Phytec-AM335X : I2C1 support\n");
+	return;
+}
+
+static void uart1_init(void)
+{
+	setup_pin_mux(uart1_pin_mux);
+	printk(KERN_INFO"Phytec-AM335X : UART1 support\n");
+	return;
+}
+
 struct devices {
 	char *device_name;
 	void (*device_init) (void);
@@ -323,6 +354,8 @@ struct devices cosmic_am335x_device[] = {
 	{"WIFI-BT", wifibt_rgmii2_gpio_config},
 	{"UART1FULL", uart1_i2c2_config},
 	{"I2C2", uart1_i2c2_config},
+	{"UART1", uart1_i2c1_config},
+	{"I2C1", uart1_i2c1_config},
 	{"NULL", NULL },
 };
 
@@ -383,6 +416,31 @@ static void uart1_i2c2_config(void)
 		}
 	} else
 	printk(KERN_INFO"\nYou can use only UART1-Full modem or I2C2 at a time\n");
+	return;
+}
+
+static void uart1_i2c1_config(void)
+{
+	static int count;
+	static int mux_val;
+
+	if (strcmp("UART1", cosmic_am335x_device[i].device_name) == 0)
+			mux_val = 1;
+	if (strcmp("I2C1", cosmic_am335x_device[i].device_name) == 0)
+			mux_val = 2;
+	if (count < 1) {
+		switch (mux_val) {
+		case 1:
+			uart1_init();
+			count++;
+			break;
+		case 2:
+			i2c1_init();
+			count++;
+			break;
+		}
+	} else
+	printk(KERN_INFO"\nYou can use only UART1 or I2C1 at a time\n");
 	return;
 }
 
