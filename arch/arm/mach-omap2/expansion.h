@@ -1,4 +1,4 @@
-#define DEVICE 9
+#define DEVICE 10
 
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
@@ -183,6 +183,13 @@ static struct pinmux_config uart2_pin_mux[] = {
 static struct pinmux_config uart3_pin_mux[] = {
 	{"mii1_rxd3.uart3_rxd_mux0", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
 	{"mii1_rxd2.uart3_txd_mux0", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
+	{NULL, 0},
+};
+
+/* Module pin mux for UART4 */
+static struct pinmux_config uart4_pin_mux[] = {
+	{"uart0_ctsn.uart4_rxd", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
+	{"uart0_rtsn.uart4_txd", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
 	{NULL, 0},
 };
 
@@ -371,6 +378,13 @@ static void uart3_init(void)
 	return;
 }
 
+static void uart4_init(void)
+{
+	setup_pin_mux(uart4_pin_mux);
+	printk(KERN_INFO"Phytec-AM335X : UART4 support\n");
+	return;
+}
+
 struct devices {
 	char *device_name;
 	void (*device_init) (void);
@@ -386,6 +400,7 @@ struct devices cosmic_am335x_device[] = {
 	{"I2C1", uart1_i2c1_config},
 	{"UART2", uart2_init},
 	{"UART3", uart3_init},
+	{"UART4", uart4_init},
 	{"NULL", NULL },
 };
 
