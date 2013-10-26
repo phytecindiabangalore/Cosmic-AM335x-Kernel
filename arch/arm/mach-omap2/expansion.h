@@ -1,3 +1,15 @@
+/*
+ * Phytec AM33XX Device based muxxing.
+ *
+ * Copyright (C) 2013 Phytec Embedded Pvt Ltd - http://www.phytec.in/
+ *
+ * Author: Ashutosh Singh <ashutosh.s@phytec.in>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
 #define DEVICE 11
 
 /* convert GPIO signal to GPIO pin number */
@@ -52,8 +64,6 @@ static struct pinmux_config gpio_pin_mux[] = {
 					AM33XX_PIN_OUTPUT},
 	{"gpmc_csn2.gpio1_31", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 					AM33XX_PIN_OUTPUT},
-	{"gpmc_wpn.gpio0_31", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
-					AM33XX_PIN_OUTPUT},
 	{"mcasp0_aclkx.gpio3_14", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 					AM33XX_PIN_OUTPUT},
 	{"mcasp0_ahclkx.gpio3_21", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
@@ -65,7 +75,7 @@ static struct pinmux_config gpio_pin_mux[] = {
 	{NULL, 0},
 };
 
-/* Pin-mux for GPIO which having conflict with rgmii2 */
+/* Pin-mux for GPIO which having conflict with rgmii2 & WIFI-BT */
 static struct pinmux_config gpio_wifi_rgmi_pin_mux[] = {
 	{"gpmc_a0.gpio1_16", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 					AM33XX_PIN_OUTPUT},
@@ -209,7 +219,6 @@ static struct pinmux_config spi1_pin_mux[] = {
 };
 
 /* Platform Data for MMC */
-
 static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
 	{
 		.mmc            = 1,
@@ -227,6 +236,7 @@ static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
 	{}      /* Terminator */
 };
 
+/* RGMII2 Initialization */
 static void rgmii2_init(void)
 {
 	printk(KERN_INFO"Phytec AM335X : RGMII2 Init\n");
@@ -234,6 +244,7 @@ static void rgmii2_init(void)
 	return;
 }
 
+/* GPIO Initialization */
 static void gpio_init(void)
 {
 	printk(KERN_INFO"Phytec AM335X : GPIO Init\n");
@@ -241,6 +252,7 @@ static void gpio_init(void)
 	return;
 }
 
+/* Platform Data for WIFI-BT */
 #define PCM051_WLAN_IRQ_GPIO    GPIO_TO_PIN(1, 25)
 #define PCM051_WLAN_EN          GPIO_TO_PIN(1, 23)
 #define PCM051_BT_EN            GPIO_TO_PIN(1, 22)
@@ -252,6 +264,7 @@ struct wl12xx_platform_data pcm051_wlan_data = {
 	.wlan_enable_gpio = PCM051_WLAN_EN,
 };
 
+/* MMC2 for WIFI initialization */
 static void mmc2_wl12xx_init(void)
 {
 	setup_pin_mux(mmc2_wl12xx_pin_mux);
@@ -269,12 +282,14 @@ static void mmc2_wl12xx_init(void)
 	return;
 }
 
+/* UART1 full modem initialization */
 static void uart1_wl12xx_init(void)
 {
 	printk(KERN_INFO"Phytec-AM335X : UART1 Full modem support\n");
 	setup_pin_mux(uart1_wl12xx_pin_mux);
 }
 
+/* Enabling Bluetooth */
 static void wl12xx_bluetooth_enable(void)
 {
 	int status = gpio_request(pcm051_wlan_data.bt_enable_gpio,
@@ -298,6 +313,7 @@ static int wl12xx_set_power(struct device *dev, int slot, int on, int vdd)
 	return 0;
 }
 
+/* Wl12xx initialization for WIFI-BT */
 static void wl12xx_init(void)
 {
 	struct device *dev;
@@ -334,6 +350,7 @@ out:
 	return;
 }
 
+/* MMC0 Initialization */
 static void mmc0_init(void)
 {
 	setup_pin_mux(mmc0_pin_mux);
@@ -342,6 +359,7 @@ static void mmc0_init(void)
 	return;
 }
 
+/* WIFI-BT Initialization */
 static void wifi_bt_init(void)
 {
 	printk(KERN_INFO"Phytec AM335X : WIFI-BT Init\n");
@@ -353,6 +371,7 @@ static void wifi_bt_init(void)
 	return;
 }
 
+/* I2C2 Initialization */
 static void i2c2_init(void)
 {
 	if (wifien == 1)
@@ -365,6 +384,7 @@ static void i2c2_init(void)
 	return;
 }
 
+/* I2C1 Initialization */
 static void i2c1_init(void)
 {
 	setup_pin_mux(i2c1_pin_mux);
@@ -372,6 +392,7 @@ static void i2c1_init(void)
 	return;
 }
 
+/* UART1 Initialization */
 static void uart1_init(void)
 {
 	setup_pin_mux(uart1_pin_mux);
@@ -379,6 +400,7 @@ static void uart1_init(void)
 	return;
 }
 
+/* UART2 Initialization */
 static void uart2_init(void)
 {
 	setup_pin_mux(uart2_pin_mux);
@@ -386,6 +408,7 @@ static void uart2_init(void)
 	return;
 }
 
+/* UART3 Initialization */
 static void uart3_init(void)
 {
 	setup_pin_mux(uart3_pin_mux);
@@ -393,6 +416,7 @@ static void uart3_init(void)
 	return;
 }
 
+/* UART4 Initialization */
 static void uart4_init(void)
 {
 	setup_pin_mux(uart4_pin_mux);
@@ -400,6 +424,7 @@ static void uart4_init(void)
 	return;
 }
 
+/* SPI1 Initialization */
 static void spi1_init(void)
 {
 	setup_pin_mux(spi1_pin_mux);
@@ -427,6 +452,7 @@ struct devices cosmic_am335x_device[] = {
 	{"NULL", NULL },
 };
 
+/* Configuration function for wifi-bt, gpio, rgmii2 */
 static void wifibt_rgmii2_gpio_config(void)
 {
 	static int count;
@@ -462,6 +488,7 @@ static void wifibt_rgmii2_gpio_config(void)
 	return;
 }
 
+/* Configuration function for uart1 & i2c2 */
 static void uart1_i2c2_config(void)
 {
 	static int count;
@@ -487,6 +514,7 @@ static void uart1_i2c2_config(void)
 	return;
 }
 
+/* Configuration function for uart1 & i2c1 */
 static void uart1_i2c1_config(void)
 {
 	static int count;
@@ -512,6 +540,10 @@ static void uart1_i2c1_config(void)
 	return;
 }
 
+/* Specific device will be called by this function
+ * it will compare each device name if matches then
+ * call specific init function for the particular device.
+ */
 void device_parser(char *device)
 {
 	for (i = 0; i < DEVICE; i++) {
@@ -527,6 +559,10 @@ struct structure {
 	char one[10];
 	};
 
+/* This function will seperate the bootargs which is catched by the
+ * board file into different devices then device_parser function will
+ * call specific init function for the particular device.
+ */
 void bootarg_seperator(char *string)
 {
 	struct structure my_structure;
@@ -541,6 +577,7 @@ void bootarg_seperator(char *string)
 	}
 }
 
+/* This function is used to initialise the expansion based devices. */
 void expansion_init(void)
 {
 	printk(KERN_INFO"\nPhytec AM335x : Device Muxxing\n");
