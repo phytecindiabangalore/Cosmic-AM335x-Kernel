@@ -15,7 +15,7 @@
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
 
-static int i, wifien, i2c2en;
+static int i, wifien, i2c2en, led_btn;
 char cosmic_am335_devices_setup_str[80] = "none";
 
 static void wifibt_rgmii2_gpio_config(void);
@@ -56,11 +56,7 @@ static struct pinmux_config mmc0_pin_mux[] = {
 static struct pinmux_config gpio_pin_mux[] = {
 	{"mcasp0_fsr.gpio3_19", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 					AM33XX_PIN_OUTPUT},
-	{"mii1_rxdv.gpio3_4", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
-					AM33XX_PIN_OUTPUT},
 	{"gpmc_csn1.gpio1_30", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
-					AM33XX_PIN_OUTPUT},
-	{"emu0.gpio3_7", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 					AM33XX_PIN_OUTPUT},
 	{"gpmc_csn2.gpio1_31", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 					AM33XX_PIN_OUTPUT},
@@ -85,21 +81,11 @@ static struct pinmux_config gpio_wifi_rgmi_pin_mux[] = {
 					AM33XX_PIN_OUTPUT},
 	{"gpmc_a3.gpio1_19", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 						AM33XX_PIN_OUTPUT},
-	{"gpmc_a4.gpio1_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
-						AM33XX_PIN_OUTPUT},
-	{"gpmc_a5.gpio1_21", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
-						AM33XX_PIN_OUTPUT},
 	{"gpmc_a6.gpio1_22", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 						AM33XX_PIN_OUTPUT},
 	{"gpmc_a7.gpio1_23", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 						AM33XX_PIN_OUTPUT},
-	{"gpmc_a8.gpio1_24", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
-						AM33XX_PIN_OUTPUT},
 	{"gpmc_a9.gpio1_25", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
-						AM33XX_PIN_OUTPUT},
-	{"gpmc_a10.gpio1_26", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
-						AM33XX_PIN_OUTPUT},
-	{"gpmc_a11.gpio1_27", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 						AM33XX_PIN_OUTPUT},
 	{"gpmc_ben1.gpio1_28", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 						AM33XX_PIN_OUTPUT},
@@ -215,6 +201,13 @@ static struct pinmux_config spi1_pin_mux[] = {
 					AM33XX_PULL_UP | AM33XX_INPUT_EN},
 	{"mcasp0_ahclkr.spi1_cs0", OMAP_MUX_MODE3 | AM33XX_PULL_ENBL |
 					AM33XX_PULL_UP | AM33XX_INPUT_EN},
+	{NULL, 0},
+};
+
+/* Module pin mux for Gpio1_8 */
+static struct pinmux_config gpio1_8_pin_mux[] = {
+	{"uart0_ctsn.gpio1_8", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
 
@@ -419,8 +412,12 @@ static void uart3_init(void)
 /* UART4 Initialization */
 static void uart4_init(void)
 {
-	setup_pin_mux(uart4_pin_mux);
-	printk(KERN_INFO"Phytec-AM335X : UART4 support\n");
+	if (led_btn == 1)
+		printk(KERN_INFO"\nYou can not use UART4 when using user LED & Button\n");
+	else {
+		setup_pin_mux(uart4_pin_mux);
+		printk(KERN_INFO"Phytec-AM335X : UART4 support\n");
+	}
 	return;
 }
 
@@ -471,7 +468,10 @@ static void wifibt_rgmii2_gpio_config(void)
 			count++;
 			break;
 		case 2:
-			rgmii2_init();
+			if (led_btn == 1)
+				printk(KERN_INFO"\nYou can not use RGMII2 when using user LED & Button\n");
+			else
+				rgmii2_init();
 			count++;
 			break;
 		case 3:
