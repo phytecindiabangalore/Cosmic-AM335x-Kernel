@@ -1,4 +1,4 @@
-#define DEVICE 10
+#define DEVICE 11
 
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
@@ -190,6 +190,21 @@ static struct pinmux_config uart3_pin_mux[] = {
 static struct pinmux_config uart4_pin_mux[] = {
 	{"uart0_ctsn.uart4_rxd", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
 	{"uart0_rtsn.uart4_txd", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
+	{NULL, 0},
+};
+
+/* Module pin mux for SPI1 */
+static struct pinmux_config spi1_pin_mux[] = {
+	{"mii1_col.spi1_sclk", OMAP_MUX_MODE2 | AM33XX_PULL_ENBL
+							| AM33XX_INPUT_EN},
+	{"mcasp0_fsx.spi1_d0", OMAP_MUX_MODE3 | AM33XX_PULL_ENBL |
+					AM33XX_PULL_UP | AM33XX_INPUT_EN},
+	{"mcasp0_axr0.spi1_d1", OMAP_MUX_MODE3 | AM33XX_PULL_ENBL
+							| AM33XX_INPUT_EN},
+	{"xdma_event_intr0.spi1_cs1", OMAP_MUX_MODE4 | AM33XX_PULL_ENBL |
+					AM33XX_PULL_UP | AM33XX_INPUT_EN},
+	{"mcasp0_ahclkr.spi1_cs0", OMAP_MUX_MODE3 | AM33XX_PULL_ENBL |
+					AM33XX_PULL_UP | AM33XX_INPUT_EN},
 	{NULL, 0},
 };
 
@@ -385,6 +400,13 @@ static void uart4_init(void)
 	return;
 }
 
+static void spi1_init(void)
+{
+	setup_pin_mux(spi1_pin_mux);
+	printk(KERN_INFO"Phytec-AM335X : SPI1 support\n");
+	return;
+}
+
 struct devices {
 	char *device_name;
 	void (*device_init) (void);
@@ -401,6 +423,7 @@ struct devices cosmic_am335x_device[] = {
 	{"UART2", uart2_init},
 	{"UART3", uart3_init},
 	{"UART4", uart4_init},
+	{"SPI1", spi1_init},
 	{"NULL", NULL },
 };
 
