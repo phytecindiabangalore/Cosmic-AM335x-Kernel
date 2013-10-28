@@ -10,12 +10,12 @@
  * published by the Free Software Foundation.
  */
 
-#define DEVICE 11
+#define DEVICE 12
 
 /* convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
 
-static int i, wifien, i2c2en, led_btn;
+static int i, wifien, i2c2en, led_btn, allgpio;
 char cosmic_am335_devices_setup_str[80] = "none";
 
 static void wifibt_rgmii2_gpio_config(void);
@@ -207,6 +207,97 @@ static struct pinmux_config spi1_pin_mux[] = {
 /* Module pin mux for Gpio1_8 */
 static struct pinmux_config gpio1_8_pin_mux[] = {
 	{"uart0_ctsn.gpio1_8", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
+/* Module pin mux for All Gpios */
+static struct pinmux_config all_gpio_pin_mux[] = {
+	{"uart1_ctsn.gpio0_12", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"uart1_rtsn.gpio0_13", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"uart1_rxd.gpio0_14", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"uart1_txd.gpio0_15", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"mii1_txclk.gpio3_9", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"mii1_rxclk.gpio3_10", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"mii1_rxd3.gpio2_18", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"mii1_rxd2.gpio2_19", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"uart0_ctsn.gpio1_8", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"mii1_col.gpio3_0", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"mcasp0_fsx.gpio3_15", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"mcasp0_axr0.gpio3_16", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"xdma_event_intr0.gpio0_19", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"mcasp0_ahclkr.gpio3_17", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data0.gpio2_6", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data1.gpio2_7", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data2.gpio2_8", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data3.gpio2_9", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data4.gpio2_10", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data5.gpio2_11", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data6.gpio2_12", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data7.gpio2_13", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data8.gpio2_14", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data9.gpio2_15", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data10.gpio2_16", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data11.gpio2_17", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data12.gpio0_8", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data13.gpio0_9", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data14.gpio0_10", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_data15.gpio0_11", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_ad8.gpio0_22", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_ad9.gpio0_23", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_ad10.gpio0_26", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_ad11.gpio0_27", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_ad12.gpio1_12", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_ad13.gpio1_13", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_ad14.gpio1_14", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"gpmc_ad15.gpio1_15", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_vsync.gpio2_22", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_hsync.gpio2_23", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_pclk.gpio2_24", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"lcd_ac_bias_en.gpio2_25", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
+						AM33XX_PIN_OUTPUT},
+	{"ecap0_in_pwm0_out.gpio0_7", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT |
 						AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
@@ -429,6 +520,17 @@ static void spi1_init(void)
 	return;
 }
 
+/* All Gpio's Initialization */
+static void all_gpio_init(void)
+{
+	setup_pin_mux(gpio_wifi_rgmi_pin_mux);
+	setup_pin_mux(gpio_pin_mux);
+	setup_pin_mux(all_gpio_pin_mux);
+	printk(KERN_INFO"Phytec-AM335X : ALL GPIO's support\n");
+	allgpio++;
+	return;
+}
+
 struct devices {
 	char *device_name;
 	void (*device_init) (void);
@@ -446,6 +548,7 @@ struct devices cosmic_am335x_device[] = {
 	{"UART3", uart3_init},
 	{"UART4", uart4_init},
 	{"SPI1", spi1_init},
+	{"ALL-GPIO", all_gpio_init},
 	{"NULL", NULL },
 };
 

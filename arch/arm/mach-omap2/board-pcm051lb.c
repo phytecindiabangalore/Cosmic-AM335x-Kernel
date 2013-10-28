@@ -579,16 +579,21 @@ out:
 
 static void pcm051lb_lcdc_init(void)
 {
-	setup_pin_mux(lcdc_pin_mux);
+	if (allgpio == 1)
+		printk(KERN_INFO"You can not use LCD when configured "
+						"for All Gpio\n");
+	else {
+		setup_pin_mux(lcdc_pin_mux);
 
-	if (conf_disp_pll(300000000)) {
-		pr_info("Failed configure display PLL, not attempting to"
-			"register LCDC\n");
-		return;
+		if (conf_disp_pll(300000000)) {
+			pr_info("Failed configure display PLL, not attempting"
+					 "to register LCDC\n");
+			return;
+		}
+
+		if (am33xx_register_lcdc(&lcdc_selection_pdata))
+			pr_info("Failed to register LCDC device\n");
 	}
-
-	if (am33xx_register_lcdc(&lcdc_selection_pdata))
-		pr_info("Failed to register LCDC device\n");
 	return;
 }
 
@@ -596,11 +601,15 @@ static void pcm051lb_lcdc_init(void)
 static int __init ecap0_init(void)
 {
 	int status = 0;
-
-	if (backlight_enable) {
-		setup_pin_mux(ecap0_pin_mux);
-		am33xx_register_ecap(0, &pwm_pdata);
-		platform_device_register(&am335x_backlight);
+	if (allgpio == 1)
+		printk(KERN_INFO"You can not use LCD when configured "
+							"for All Gpio\n");
+	else {
+		if (backlight_enable) {
+			setup_pin_mux(ecap0_pin_mux);
+			am33xx_register_ecap(0, &pwm_pdata);
+			platform_device_register(&am335x_backlight);
+		}
 	}
 	return status;
 }
