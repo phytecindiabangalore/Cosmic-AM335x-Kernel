@@ -293,8 +293,6 @@ static struct pinmux_config btn_led_pin_mux[] = {
 	{"mii1_rxdv.gpio3_4", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 
 	/* user LEDS */
-	{"emu0.gpio3_7", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT
-						| AM33XX_PIN_INPUT},
 	{"gpmc_a11.gpio1_27", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT
 						| AM33XX_PIN_INPUT},
 	{"gpmc_a10.gpio1_26", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT
