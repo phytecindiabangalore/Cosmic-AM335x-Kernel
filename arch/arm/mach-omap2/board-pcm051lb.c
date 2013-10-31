@@ -72,6 +72,7 @@
 #include "board-flash.h"
 #include "devices.h"
 #include "expansion.h"
+#include <linux/leds.h>
 
 #define GPIO_RTC_RV4162C7_IRQ	GPIO_TO_PIN(0, 20)
 #define GPIO_RTC_PMIC_IRQ	GPIO_TO_PIN(3, 4)
@@ -93,6 +94,36 @@ static struct omap_board_mux board_mux[] __initdata = {
 #define AM335X_PWM_PERIOD_NANO_SECONDS		100000
 
 #define PWM_DEVICE_ID	"ecap.0"
+
+static struct gpio_led gpio_leds[] = {
+	{
+		.name			= "pcm051lb:EVM_SK:heartbeat",
+		.gpio			= GPIO_TO_PIN(1, 21),	/* D5 */
+		.default_trigger	= "heartbeat",
+	},
+};
+
+static struct gpio_led_platform_data gpio_led_info = {
+	.leds		= gpio_leds,
+	.num_leds	= ARRAY_SIZE(gpio_leds),
+};
+
+static struct platform_device leds_gpio = {
+	.name	= "leds-gpio",
+	.id	= -1,
+	.dev	= {
+		.platform_data	= &gpio_led_info,
+	},
+};
+
+static void gpio_led_init()
+{
+	int err;
+
+	err = platform_device_register(&leds_gpio);
+	if (err)
+		pr_err("failed to register gpio led device\n");
+}
 
 static const struct display_panel disp_panel = {
 	VGA,
@@ -285,6 +316,7 @@ static void pcm051lb_btn_led_init(void)
 static void pcm051_mux_init(void)
 {
 	pcm051lb_btn_led_init();
+	gpio_led_init();
 	expansion_init();
 	if (wifien == 0)
 		mmc0_init();
